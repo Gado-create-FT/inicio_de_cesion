@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
-import 'home_screen.dart';
-import 'register_screen.dart';
-import 'wave_animation.dart';
-import 'navigation_helper.dart';
+import '../home_screen.dart';
+import '../admin_screen.dart';
+import '../register_screen.dart';
+import '../wave_animation.dart';
+import '../navigation_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -11,7 +12,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   bool _isLoading = false;
@@ -23,11 +24,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    String username = usernameController.text.trim();
+    String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
-    if (username.isNotEmpty && password.isNotEmpty) {
-      var user = await DatabaseHelper().loginUser(username, password);
+    if (email.isNotEmpty && password.isNotEmpty) {
+      var user = await DatabaseHelper().loginUser(email, password);
       if (user != null) {
         setState(() {
           _showAnimation = true;
@@ -38,13 +39,19 @@ class _LoginScreenState extends State<LoginScreen> {
             _showAnimation = false;
             _isLoading = false;
           });
-          navigateWithFade(context, HomeScreen(user['first_name'], user['last_name']));
+
+          // Redirigir según el rol del usuario
+          if (user['role'] == 'admin') {
+            navigateWithFade(context, AdminScreen(user['first_name'], user['last_name']));
+          } else {
+            navigateWithFade(context, HomeScreen(user['first_name'], user['last_name']));
+          }
         });
       } else {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Usuario o contraseña incorrectos.")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Correo o contraseña incorrectos.")));
       }
     } else {
       setState(() {
@@ -68,12 +75,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(height: 20),
                 Text("Iniciar Sesión", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                 SizedBox(height: 20),
-                TextField(controller: usernameController, decoration: InputDecoration(labelText: "Nombre de Usuario")),
+
+                // Campo de correo en lugar de usuario
+                TextField(controller: emailController, decoration: InputDecoration(labelText: "Correo Electrónico")),
                 SizedBox(height: 10),
+
+                // Campo de contraseña
                 TextField(controller: passwordController, decoration: InputDecoration(labelText: "Contraseña"), obscureText: true),
                 SizedBox(height: 20),
-                
-                // Botón con loader y efecto de presión
+
+                // Botón con animación de presión y loader
                 _isLoading
                     ? CircularProgressIndicator(color: Colors.redAccent)
                     : GestureDetector(
@@ -93,6 +104,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
 
                 SizedBox(height: 10),
+
+                // Botón para ir a la pantalla de registro
                 TextButton(
                   onPressed: () {
                     navigateWithFade(context, RegisterScreen());
@@ -103,6 +116,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+
+        // Animación de ondas negras al iniciar sesión
         if (_showAnimation) WaveAnimation(),
       ],
     );

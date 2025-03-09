@@ -20,7 +20,7 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    // 👇 Solución para Windows, Mac y Linux
+    // Solución para SQLite en Windows, Mac y Linux
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -31,55 +31,75 @@ class DatabaseHelper {
 
     return await openDatabase(
       databasePath,
-      version: 1,
+      version: 2, // Asegura que la base de datos esté actualizada
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT,
             last_name TEXT,
-            username TEXT UNIQUE,
-            password TEXT
+            email TEXT UNIQUE,
+            password TEXT,
+            role TEXT DEFAULT 'user'  -- Los usuarios normales tienen el rol 'user'
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
+        }
       },
     );
   }
 
-  // ✅ REGISTRAR USUARIO
-  Future<int> registerUser(String firstName, String lastName, String username, String password) async {
+  // ✅ REGISTRAR USUARIO CON ASIGNACIÓN AUTOMÁTICA DE ADMINISTRADOR
+  Future<int> registerUser(String firstName, String lastName, String email, String password) async {
     final db = await database;
+
+    // Lista de correos predefinidos que serán administradores
+    List<String> adminEmails = ["admin@gmail.com", "gado@gmail.com"];
+
+    // Si el correo está en la lista, será admin; si no, será usuario normal
+    String role = adminEmails.contains(email) ? 'admin' : 'user';
+
     return await db.insert(
       'users',
       {
         'first_name': firstName,
         'last_name': lastName,
-        'username': username,
+        'email': email,
         'password': password,
+        'role': role,
       },
     );
   }
 
-  // ✅ INICIAR SESIÓN (VALIDAR USUARIO)
-  Future<Map<String, dynamic>?> loginUser(String username, String password) async {
+  // ✅ INICIAR SESIÓN Y OBTENER DATOS DEL USUARIO
+  Future<Map<String, dynamic>?> loginUser(String email, String password) async {
     final db = await database;
     List<Map<String, dynamic>> users = await db.query(
       'users',
-      where: 'username = ? AND password = ?',
-      whereArgs: [username, password],
+      where: 'email = ? AND password = ?',
+      whereArgs: [email, password],
     );
 
     return users.isNotEmpty ? users.first : null;
   }
 
-  // ✅ CERRAR SESIÓN (Opcional)
-  Future<void> logout() async {
-    _database = null;
+  // ✅ OBTENER TODOS LOS USUARIOS (Para que un admin pueda verlos)
+  Future<List<Map<String, dynamic>>> getUsers() async {
+    final db = await database;
+    return await db.query('users');
   }
 
-  // ✅ BORRAR TODOS LOS USUARIOS (Para pruebas)
-  Future<void> deleteAllUsers() async {
+  // ✅ ELIMINAR UN USUARIO POR ID
+  Future<void> deleteUser(int id) async {
     final db = await database;
-    await db.delete('users');
+    await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ✅ CERRAR SESIÓN (Opcional, limpia la instancia de la base de datos)
+  Future<void> logout() async {
+    _database = null;
   }
 }

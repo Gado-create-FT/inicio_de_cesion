@@ -10,14 +10,14 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
-  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
   void register() async {
     String firstName = firstNameController.text.trim();
     String lastName = lastNameController.text.trim();
-    String username = usernameController.text.trim();
+    String username = emailController.text.trim();
     String password = passwordController.text.trim();
     String confirmPassword = confirmPasswordController.text.trim();
 
@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             SizedBox(height: 10),
             TextField(controller: lastNameController, decoration: InputDecoration(labelText: "Apellido")),
             SizedBox(height: 10),
-            TextField(controller: usernameController, decoration: InputDecoration(labelText: "Nombre de Usuario")),
+            TextField(controller: emailController, decoration: InputDecoration(labelText: "Correo Electrónico")),
             SizedBox(height: 10),
             TextField(controller: passwordController, decoration: InputDecoration(labelText: "Contraseña"), obscureText: true),
             SizedBox(height: 10),
