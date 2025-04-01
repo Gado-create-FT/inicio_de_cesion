@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (user['role'] == 'admin') {
             navigateWithFade(context, AdminScreen(user['first_name'], user['last_name']));
           } else {
-            navigateWithFade(context, HomeScreen(user['first_name'], user['last_name']));
+            navigateWithFade(context, HomeScreen(user['first_name'], user['last_name'], user['email']));
           }
         });
       } else {

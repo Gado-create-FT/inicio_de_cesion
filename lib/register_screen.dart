@@ -14,6 +14,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
+  void showAlert(String mensaje, {Color color = Colors.redAccent}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: color,
+      ),
+    );
+  }
+
   void register() async {
     String firstName = firstNameController.text.trim();
     String lastName = lastNameController.text.trim();
@@ -21,27 +30,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String password = passwordController.text.trim();
     String confirmPassword = confirmPasswordController.text.trim();
 
-    if (firstName.isNotEmpty && lastName.isNotEmpty && username.isNotEmpty && password.isNotEmpty) {
-      if (password == confirmPassword) {
-        await DatabaseHelper().registerUser(firstName, lastName, username, password);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Registro exitoso. Inicia sesión.")));
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Las contraseñas no coinciden.")));
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Completa todos los campos.")));
+    if (firstName.isEmpty || lastName.isEmpty || username.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      showAlert("Completa todos los campos.");
+      return;
     }
+
+    if (password != confirmPassword) {
+      showAlert("Las contraseñas no coinciden.");
+      return;
+    }
+
+    // Aquí puedes validar formato de correo o fuerza de la contraseña si deseas.
+
+    await DatabaseHelper().registerUser(firstName, lastName, username, password);
+    showAlert("Registro exitoso. Inicia sesión.", color: Colors.green);
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
+      body: SingleChildScrollView( // Evita overflow con teclado
         padding: EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            SizedBox(height: 60),
             Icon(Icons.person_add, size: 100, color: Colors.redAccent),
             SizedBox(height: 20),
             Text("Registro", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -64,6 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               },
               child: Text("¿Ya tienes cuenta? Inicia Sesión"),
             ),
+            SizedBox(height: 40),
           ],
         ),
       ),
