@@ -56,7 +56,8 @@ class HomeScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // Navegar a la pantalla con el mapa cuando se presiona el botón
-                navigateWithFade(context, MapScreen());
+                navigateWithFade(context, MapScreen(email: email));
+
               },
               child: Text("Ver Mapa"), // El texto del botón
             ),

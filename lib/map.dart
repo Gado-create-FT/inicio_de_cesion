@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'marker_form_screen.dart'; // Asegúrate de importar correctamente el formulario
+import 'package:inicio/database_helper.dart';
+import 'marker_form_screen.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({Key? key}) : super(key: key);
+  final String email;
+
+  const MapScreen({Key? key, required this.email}) : super(key: key);
 
   @override
   _MapScreenState createState() => _MapScreenState();
@@ -11,29 +14,106 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late GoogleMapController mapController;
-  final LatLng _initialPosition = LatLng(20.4217, -99.2118); // Coordenadas de Ixmiquilpan
-  Set<Marker> _markers = {}; // Conjunto de marcadores
+  final LatLng _initialPosition = LatLng(20.4217, -99.2118);
+  Set<Marker> _markers = {};
 
-  // Función que se llama cuando el mapa ha sido creado
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller; // Inicializar el controlador del mapa
+  @override
+  void initState() {
+    super.initState();
+    _loadUserMarkers();
   }
 
-  // Función que se llama cuando el usuario mantiene presionado un punto en el mapa
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
+
   void _onLongPress(LatLng position) {
-    // Navegar a la pantalla para agregar detalles del marcador
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MarkerFormScreen(position: position),
+        builder: (context) => MarkerFormScreen(
+          position: position,
+          email: widget.email,
+        ),
       ),
     ).then((newMarker) {
       if (newMarker != null) {
-        setState(() {
-          _markers.add(newMarker); // Agregar el nuevo marcador al conjunto
-        });
+        _loadUserMarkers(); // Recargar marcadores
       }
     });
+  }
+
+  Future<void> _loadUserMarkers() async {
+    final markersFromDB = await DatabaseHelper.instance.getMarkersByEmail(widget.email);
+
+    setState(() {
+      _markers = markersFromDB.map((data) {
+        final markerId = MarkerId(data['id'].toString());
+        return Marker(
+          markerId: markerId,
+          position: LatLng(data['latitude'], data['longitude']),
+          infoWindow: InfoWindow(
+            title: data['title'],
+            snippet: data['description'],
+          ),
+          onTap: () {
+            _showMarkerOptions(
+              markerId: data['id'],
+              title: data['title'],
+              description: data['description'],
+              lat: data['latitude'],
+              lng: data['longitude'],
+            );
+          },
+        );
+      }).toSet();
+    });
+  }
+
+  void _showMarkerOptions({
+    required int markerId,
+    required String title,
+    required String description,
+    required double lat,
+    required double lng,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Wrap(
+        children: [
+          ListTile(
+            leading: Icon(Icons.edit),
+            title: Text("Editar"),
+            onTap: () async {
+              Navigator.pop(context);
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MarkerFormScreen(
+                    position: LatLng(lat, lng),
+                    email: widget.email,
+                    isEditing: true,
+                    markerId: markerId,
+                    initialTitle: title,
+                    initialDescription: description,
+                  ),
+                ),
+              );
+              if (result != null) _loadUserMarkers();
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.delete),
+            title: Text("Eliminar"),
+            onTap: () async {
+              await DatabaseHelper.instance.deleteMarker(markerId);
+              Navigator.pop(context);
+              _loadUserMarkers();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -49,8 +129,8 @@ class _MapScreenState extends State<MapScreen> {
           target: _initialPosition,
           zoom: 10.0,
         ),
-        markers: _markers, // Asociar los marcadores al mapa
-        onLongPress: _onLongPress, // Detecta el presionado largo del mapa
+        markers: _markers,
+        onLongPress: _onLongPress,
       ),
     );
   }
